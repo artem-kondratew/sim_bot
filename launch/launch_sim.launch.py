@@ -60,6 +60,6 @@ def generate_launch_description():
         joystick,
         gazebo,
         spawn_entity,
-        diff_drive_spawner,  # Uncommit for ros2_control
-        joint_broad_spawner  # Uncommit for ros2_control
+        #diff_drive_spawner,  # Uncommit for ros2_control
+        #joint_broad_spawner  # Uncommit for ros2_control
     ])
