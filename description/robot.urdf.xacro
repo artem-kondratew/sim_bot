@@ -6,8 +6,9 @@
     <xacro:include filename="gazebo_control.xacro"/>
     <!-- <xacro:include filename="ros2_control.xacro"/> -->   <!-- Uncommit for ros2_control -->
     <!-- <xacro:include filename="lidar.xacro"/> --> 
-    <xacro:include filename="ultrasonic.xacro"/>
-    <xacro:include filename="camera.xacro"/>
+    <xacro:include filename="ultrasonic_central.xacro"/>
+    <xacro:include filename="ultrasonic_left.xacro"/>
+    <!-- <xacro:include filename="camera.xacro"/> -->
     <!-- <xacro:include filename="depth_camera.xacro"/> -->
 
 </robot>
