@@ -4,8 +4,9 @@ from ament_index_python.packages import get_package_share_directory
 
 
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
 
 from launch_ros.actions import Node
 
@@ -18,7 +19,7 @@ def generate_launch_description():
     rsp = IncludeLaunchDescription(
                 PythonLaunchDescriptionSource([os.path.join(
                     get_package_share_directory(package_name), 'launch', 'rsp.launch.py'
-                )]), launch_arguments={'use_sim_time': 'true'}.items()
+                )]), launch_arguments={'use_sim_time': 'true', 'use_ros2_control': 'false'}.items()
     )
     
     joystick = IncludeLaunchDescription(
@@ -27,19 +28,37 @@ def generate_launch_description():
                 )]), launch_arguments={'use_sim_time': 'true'}.items()
     )
 
+    default_world = os.path.join(
+        get_package_share_directory(package_name),
+        'worlds',
+        'empty.world'
+    )
+    
+    world = LaunchConfiguration('world')
 
-    # Include the Gazebo launch file, provided by the gazebo_ros package
+    world_arg = DeclareLaunchArgument(
+        'world',
+        default_value=default_world,
+        description='World to load'
+    )
+
+    # Include the Gazebo launch file, provided by the ros_gz_sim package
     gazebo = IncludeLaunchDescription(
                 PythonLaunchDescriptionSource([os.path.join(
-                    get_package_share_directory('gazebo_ros'), 'launch', 'gazebo.launch.py')]),
+                    get_package_share_directory('ros_gz_sim'), 'launch', 'gz_sim.launch.py')]),
+                    launch_arguments={'gz_args': ['-r -v4 ', world], 'on_exit_shutdown': 'true'}.items()
              )
 
-    # Run the spawner node from the gazebo_ros package. The entity name doesn't really matter if you only have a single robot.
+    # Run the spawner node from the ros_gz_sim package. The entity name doesn't really matter if you only have a single robot.
     spawn_entity = Node(
-    	package='gazebo_ros', 
-    	executable='spawn_entity.py',
-		arguments=['-topic', 'robot_description', '-entity', 'my_bot'],
-		output='screen'
+    	package='ros_gz_sim', 
+    	executable='create',
+		arguments=['-topic', 'robot_description', '-name', 'my_bot',
+				    '-x', '0.0',
+		   			'-y', '0.0',
+		   			'-z', '0.1',
+                    '-Y', '-1.5708'], #1.5708 2.0944
+		output='screen',
 	)
 
     diff_drive_spawner = Node(
@@ -54,12 +73,55 @@ def generate_launch_description():
         arguments=["joint_broad"],
     )
 
-    # Launch them all!
+    ultrasonic_data = Node(
+        package="ultrasonic",
+        executable="ultrasonic_data",
+    )
+
+    neuromorphic_controller = Node(
+        package="neuromorphic_controller",
+        executable="neuromorphic_controller",
+    )
+
+    pose_listener = Node(
+        package="pose_listener",
+        executable="pose_listener",
+    )
+
+    path_publisher = Node(
+        package="path_publisher",
+        executable="path_publisher",
+    )
+
+    bridge_params = os.path.join(get_package_share_directory(package_name),'config','gz_bridge.yaml')
+    ros_gz_bridge = Node(
+        package="ros_gz_bridge",
+        executable="parameter_bridge",
+        arguments=[
+            '--ros-args',
+            '-p',
+            f'config_file:={bridge_params}',
+        ]
+    )
+    ros_gz_image_bridge = Node(
+        package="ros_gz_image",
+        executable="image_bridge",
+        arguments=["/camera/image_raw"]
+    )
+
     return LaunchDescription([
         rsp,
-        joystick,
+        # joystick,
         gazebo,
         spawn_entity,
+        world_arg,
+        ros_gz_bridge,
+        ros_gz_image_bridge,
         #diff_drive_spawner,  # Uncommit for ros2_control
         #joint_broad_spawner  # Uncommit for ros2_control
+        # ultrasonic_data,
+        #fake_controller,
+        #neuromorphic_controller,
+        # pose_listener,
+        #path_publisher,
     ])
